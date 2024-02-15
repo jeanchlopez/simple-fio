@@ -3,14 +3,16 @@
 storage_type=ocs-storagecluster-ceph-rbd
 #storage_type=ocs-storagecluster-cephfs
 
+#
 # FIO Execution Parameters
 #-------------------------
-server=3
-sample=2
+server=1
+sample=1
 # Prefill options: true|false
 prefill=true
 # Storage size should be larger than 'numjob x size'; make sure there is no invisible trailing characters
 storage(Gi)=200
+base_container_image=quay.io/vcppds7878/simple-fio:0.2
 
 #----------------------------------------------
 # ioengine=libaio	# Fixed
@@ -18,13 +20,13 @@ storage(Gi)=200
 # directory=/mnt/pvc	# Fixed for ocs-storagecluster-cephfs
 #----------------------------------------------
 direct=1
-rw=randread
+rw=randwrite
 # multiple block sizes can be mentioned with space separated
-bs=8k 16k
+bs=8k
 numjobs=4
 time_based=1
 runtime=120
 size=5G
 iodepth=8
-log_avg_msec=5000
+log_avg_msec=1000
 #rate_iops=100 ==> Plan to include in the processing file.

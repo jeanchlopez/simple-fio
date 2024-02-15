@@ -1,8 +1,14 @@
 #!/bin/bash
 #
+# Detect CPU architecture
+#
+arch=$(lscpu | grep Architecture | awk '{print $2}')
+export container_image="$(grep base_container_image config.file | awk -F "=" '{print $2}')-${arch}"
+echo "Will be using container image as ${container_image}"
+#
 #==========================================================
 # Creating and setting up the namespace
-# ---------------------------------------------------------
+#----------------------------------------------------------
 namespace="simple-fio"
 if [ `oc get project | grep ${namespace} | awk '{print $1}'` ]
 then 
@@ -127,7 +133,7 @@ do
 		envsubst < blk-server.yaml | oc create -f -
 	elif [ `grep "^storage_type" config.file | awk -F "=" '{print $2}'` == "ocs-storagecluster-cephfs" ]; then
 		envsubst < fs-pvc.yaml | oc create -f -
-		sleep 20
+	sleep 20
 		envsubst < fs-server.yaml | oc create -f -
 	fi
 	oc wait pod --for=condition=Ready -l app=fio-server --timeout=1h > /dev/null
@@ -138,7 +144,19 @@ do
 done
 
 sleep 10
-oc create -f client.yaml
+sed -e "s#image: to_be_updated_at_run_time#image: ${container_image}#g" client.yaml >client-gen.yaml
+#
+# Check we do not have any client pod running
+#
+client_pod=$(oc get po -n ${namespace} -o name | grep "fio-client")
+if [ "x${client_pod}" != "x" ]
+then
+   #
+   # We do so let's remove that pod so we can recreate it
+   #
+   oc delete -n ${namespace} ${client_pod}
+fi
+oc create -f client-gen.yaml
 oc wait pod --for=condition=Ready -l app=fio-client --timeout=1h > /dev/null
 
 oc cp ${job_info} ${namespace}/fio-client:/tmp
