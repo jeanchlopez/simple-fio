@@ -6,7 +6,9 @@ flush_data_and_metrics ()
 {
    if [ "x${RESULT_FORMAT}" == "x" ] || [ "x${RESULT_FORMAT}" == "xdefault" ]
    then
-      printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' "${g_storage_clustername}" ${g_storage_pvc} ${g_storage_type} "${g_storage_environment}" ${jb_jobname} ${jb_bs} ${g_numjobs} ${jb_iodepth} $( bc <<< "scale=2; ${wbw_avg}/1024") $( bc <<< "scale=2; ${wio_avg}/1.00") $( bc <<< "scale=2; ${wlat_mean}/1000000") $( bc <<< "scale=2; ${wlat_95th}/1000000") $( bc <<< "scale=2; ${rbw_avg}/1024") $( bc <<< "scale=2; ${rio_avg}/1.00") $( bc <<< "scale=2; ${rlat_mean}/1000000") $( bc <<< "scale=2; ${rlat_95th}/1000000") $( bc <<< "scale=2; ${wbw_avg}+${rbw_avg}") $( bc <<< "scale=2; ${wio_avg}+${rio_avg}") ${jb_runtime} >>./results.csv
+      tio_avg=$( bc <<< "scale=2; ${wio_avg}+${rio_avg}" )
+      tbw_avg=$( bc <<< "scale=2; ${wbw_avg}+${rbw_avg}" )
+      printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' "${g_storage_clustername}" ${g_storage_pvc} ${g_storage_type} "${g_storage_environment}" ${jb_jobname} ${jb_bs} ${g_numjobs} ${jb_iodepth} ${client_number} $( bc <<< "scale=2; ${wbw_avg}/1024") $( bc <<< "scale=2; ${wio_avg}/1.00") $( bc <<< "scale=2; ${wlat_mean}/1000000") $( bc <<< "scale=2; ${wlat_95th}/1000000") $( bc <<< "scale=2; ${rbw_avg}/1024") $( bc <<< "scale=2; ${rio_avg}/1.00") $( bc <<< "scale=2; ${rlat_mean}/1000000") $( bc <<< "scale=2; ${rlat_95th}/1000000") $( bc <<< "scale=2; ${tbw_avg}/1024") $( bc <<< "scale=2; ${tio_avg}/1.00") ${jb_runtime} >>./results.csv
    else
       echo "Detailed metrics format is not yet available"
    fi
@@ -17,7 +19,7 @@ flush_data_and_metrics ()
 create_default_header ()
 {
    echo "Generating default header"
-   echo "Cluster Name,PVC,Storage Type,Environment,Test Name,IO Size,Jobs,Depth,write MiB/s,Writes/s,Mean Write Latency (ms),95th Write Latency,read MiB/s,Reads/s,Mean Read Latency (ms),95th Read Latency,Total MiB/s,Total IOPS,Total Time (s)" >./results.csv
+   echo "Cluster Name,PVC,Storage Type,Environment,Test Name,IO Size,Jobs,Depth,Client,write MiB/s,Writes/s,Mean Write Latency (ms),95th Write Latency,read MiB/s,Reads/s,Mean Read Latency (ms),95th Read Latency,Total MiB/s,Total IOPS,Total Time (s)" >./results.csv
 }
 #
 # Detailed header
@@ -64,10 +66,18 @@ get_lat_metrics ()
    lat_max=$(echo ${input_buffer} | jq -r '.lat_ns.max')
    lat_mean=$(echo ${input_buffer} | jq -r '.lat_ns.mean')
    lat_dev=$(echo ${input_buffer} | jq -r '.lat_ns.stddev')
-   lat_95th=$(echo ${input_buffer} | jq -r '.clat_ns.percentile."95.000000"')
-   if [[ "x${lat_95th}" == "xnull" ]]
+   if [ "x{client_number}" == "xSUM" ]
    then
-      lat_95th=0.0
+      #
+      # If multi client total entry no percentiels are displayed
+      #
+      lat_95th='N/A'
+   else
+      lat_95th=$(echo ${input_buffer} | jq -r '.clat_ns.percentile."95.000000"')
+      if [[ "x${lat_95th}" == "xnull" ]]
+      then
+         lat_95th=0.0
+      fi
    fi
    printf 'Latency %s,%s,%f,%f,%s\n' ${lat_min} ${lat_max} ${lat_mean} ${lat_dev} ${lat_95th}
    if [ "x$2" == "xr" ]
@@ -159,9 +169,10 @@ get_bw_metrics ()
 get_read_metrics ()
 {
    input_file=$1
-   get_bw_metrics "$(cat ${input_file} | jq -r '.client_stats[0].read')" "r"
-   get_io_metrics "$(cat ${input_file} | jq -r '.client_stats[0].read')" "r"
-   get_lat_metrics "$(cat ${input_file} | jq -r '.client_stats[0].read')" "r"
+   index=$2
+   get_bw_metrics "$(cat ${input_file} | jq -r ".client_stats[${index}].read")" "r"
+   get_io_metrics "$(cat ${input_file} | jq -r ".client_stats[${index}].read")" "r"
+   get_lat_metrics "$(cat ${input_file} | jq -r ".client_stats[${index}].read")" "r"
 }
 #
 # Extract write activity metrics
@@ -169,9 +180,10 @@ get_read_metrics ()
 get_write_metrics ()
 {
    input_file=$1
-   get_bw_metrics "$(cat ${input_file} | jq -r '.client_stats[0].write')" "w"
-   get_io_metrics "$(cat ${input_file} | jq -r '.client_stats[0].write')" "w"
-   get_lat_metrics "$(cat ${input_file} | jq -r '.client_stats[0].write')" "w"
+   index=$2
+   get_bw_metrics "$(cat ${input_file} | jq -r ".client_stats[${index}].write")" "w"
+   get_io_metrics "$(cat ${input_file} | jq -r ".client_stats[${index}].write")" "w"
+   get_lat_metrics "$(cat ${input_file} | jq -r ".client_stats[${index}].write")" "w"
 }
 #
 # Extract the list of all tests stored in the server
@@ -218,27 +230,50 @@ do
    #
    if ! test -f ./results.csv
    then
-      echo "Create results.csv file"
       if [ "x${RESULT_FORMAT}" == "x" ] || [ "x${RESULT_FORMAT}" == "xdefault" ]
       then
          create_default_header
       else   
          create_detailed_header
       fi
-   else
-      echo "Using results.csv file"
    fi
    cat ${target_dir}/summary.log | egrep -v -e "^<fio-server" >${target_dir}/summary.out
-   get_global_info ${target_dir}/summary.out
-   get_job_info ${target_dir}/summary.out
-   get_write_metrics ${target_dir}/summary.out
-   get_read_metrics ${target_dir}/summary.out
-   #
-   # Print metrics to results.csv
-   #
-   flush_data_and_metrics
-   #
-   # Remove the current file and its directory
-   #
-   rm -Rf ${target_dir}
+   multi_client=$(cat ${target_dir}/summary.out | jq '.client_stats[].jobname' | wc -l)
+   if [ "x${multi_client}" != "x1" ]
+   then 
+      job_entries=$( bc <<< ${multi_client}-1 )
+      get_global_info ${target_dir}/summary.out
+      get_job_info ${target_dir}/summary.out
+      index=0
+      while [ "x${index}" != "x${job_entries}" ]
+      do
+         echo "Processing client number ${index} for ${target_dir}"
+         export client_number=${index}
+         get_write_metrics ${target_dir}/summary.out ${index}
+         get_read_metrics ${target_dir}/summary.out ${index}
+         #
+         # Print metrics to results.csv
+         #
+         flush_data_and_metrics
+         index=$( bc <<< ${index}+1 )
+      done
+      export client_number='SUM'
+      get_write_metrics ${target_dir}/summary.out ${index}
+      get_read_metrics ${target_dir}/summary.out ${index}
+      flush_data_and_metrics
+   else
+      export client_number='Single'
+      get_global_info ${target_dir}/summary.out
+      get_job_info ${target_dir}/summary.out
+      get_write_metrics ${target_dir}/summary.out 0
+      get_read_metrics ${target_dir}/summary.out 0
+      #
+      # Print metrics to results.csv
+      #
+      flush_data_and_metrics
+      #
+      # Remove the current file and its directory
+      #
+      #rm -Rf ${target_dir}
+   fi
 done

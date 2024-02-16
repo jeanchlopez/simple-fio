@@ -12,7 +12,7 @@ storage_type=ocs-storagecluster-ceph-rbd
 #
 # FIO Execution Parameters
 #-------------------------
-server=2
+server=3
 sample=1
 # Prefill options: true|false
 prefill=true
