@@ -1,3 +1,9 @@
+#---------------
+# Tool Parameters
+#---------------
+cluster_name=IBM4Citi
+cluster_environment="Data Foundation on Z"
+#---------------
 # OCS Parameters
 #---------------
 storage_type=ocs-storagecluster-ceph-rbd
@@ -6,7 +12,7 @@ storage_type=ocs-storagecluster-ceph-rbd
 #
 # FIO Execution Parameters
 #-------------------------
-server=1
+server=2
 sample=1
 # Prefill options: true|false
 prefill=true

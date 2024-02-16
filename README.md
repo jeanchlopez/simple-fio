@@ -14,18 +14,25 @@ This can be used to quickly run some fio tests in a Kubernetes/Openshift environ
 ## Test Configuration
 To execute a fio test, one needs to only change the parameters in the config.file.
 There are three sections in the config.file:
-1. OCS Parameters
+1. Tool Paramaters
+   - cluster_name: Give a name to the cluster so it can be printed in the results generated
+   - cluster_environment: Provide context fopr your test environment
+
+NOTE: The fio output format has been changed so it can be parsed through `print_results.sh`. If you with to go back to the old
+format, edit the `client.yaml` file and remove the `--output-format=json` option on line 56.
+
+2. OCS Parameters
    - storage_type: This defines the undelying storage class to be used.
      * options: ocs-storagecluster-ceph-rbd | ocs-storagecluster-cephfs
 
-2. FIO Execution Parameters
+3. FIO Execution Parameters
    - server: Number of fio server pods (usually this equals to the number of ODF workers or multiples of it). FIO test is actually executed on it, RBD volumes or CephFS mounts are present in these pods.
    - sample: Number of iterations of the test
    - prefill: To perform prefill or not for RBD volumes
      * options: true | false
    - storage(Gi): size of each PVC (should be larger than 'numjob x fio volume/file size')
 
-3. FIO parameters: These parameters are used exactly as defined in the [FIO documentation](https://fio.readthedocs.io/en/latest/fio_doc.html)
+4. FIO parameters: These parameters are used exactly as defined in the [FIO documentation](https://fio.readthedocs.io/en/latest/fio_doc.html)
    - [direct](https://fio.readthedocs.io/en/latest/fio_doc.html#cmdoption-arg-direct): If value is true, use non-buffered I/O. This is usually O_DIRECT.
    - [rw](https://fio.readthedocs.io/en/latest/fio_doc.html#cmdoption-arg-readwrite): Type of I/O pattern.
      * rw=read | write | randread | randwrite | randrw
@@ -110,3 +117,13 @@ total 328
 -rw-r--r--. 1 1000710000 1000710000 81920 Nov 21 11:20 fio_8k_randread_sample2_23_11_21_11_20.tar
 -rw-r--r--. 1 1000710000 1000710000  7862 Nov 21 11:13 prefill_output.log
 ```
+
+### Formatted output
+For quick generation of a comma separated file, run `./print_results.sh
+```
+
+# cat ~/simple-fio-results/results.csv
+Cluster Name,PVC,Storage Type,Environment,Test Name,IO Size,Jobs,Depth,write MiB/s,Writes/s,Mean Write Latency (ms),95th Write Latency,read MiB/s,Reads/s,Mean Read Latency (ms),95th Read Latency,Total MiB/s,Total IOPS,Total Time (s)
+IBM4Citi,fio-pv-claim,ocs-storagecluster-ceph-rbd,Data Foundation on Z,fio_test,8k,4,8,34.28,4388.81,7.29,14.87,0,0,0,0,35110,4388.817143,120
+```
+
