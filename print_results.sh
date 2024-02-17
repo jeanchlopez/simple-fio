@@ -8,7 +8,7 @@ flush_data_and_metrics ()
    then
       tio_avg=$( bc <<< "scale=2; ${wio_avg}+${rio_avg}" )
       tbw_avg=$( bc <<< "scale=2; ${wbw_avg}+${rbw_avg}" )
-      printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' "${g_storage_clustername}" ${g_storage_pvc} ${g_storage_type} "${g_storage_environment}" ${jb_jobname} ${jb_bs} ${g_numjobs} ${jb_iodepth} ${client_number} $( bc <<< "scale=2; ${wbw_avg}/1024") $( bc <<< "scale=2; ${wio_avg}/1.00") $( bc <<< "scale=2; ${wlat_mean}/1000000") $( bc <<< "scale=2; ${wlat_95th}/1000000") $( bc <<< "scale=2; ${rbw_avg}/1024") $( bc <<< "scale=2; ${rio_avg}/1.00") $( bc <<< "scale=2; ${rlat_mean}/1000000") $( bc <<< "scale=2; ${rlat_95th}/1000000") $( bc <<< "scale=2; ${tbw_avg}/1024") $( bc <<< "scale=2; ${tio_avg}/1.00") ${jb_runtime} >>./results.csv
+      printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' "${g_storage_clustername}" ${g_storage_pvc} ${g_storage_type} "${g_storage_environment}" ${jb_jobname} ${mode} ${jb_bs} ${g_numjobs} ${jb_iodepth} ${client_number} $( bc <<< "scale=2; ${wbw_avg}/1024") $( bc <<< "scale=2; ${wio_avg}/1.00") $( bc <<< "scale=2; ${wlat_mean}/1000000") $( bc <<< "scale=2; ${wlat_95th}/1000000") $( bc <<< "scale=2; ${rbw_avg}/1024") $( bc <<< "scale=2; ${rio_avg}/1.00") $( bc <<< "scale=2; ${rlat_mean}/1000000") $( bc <<< "scale=2; ${rlat_95th}/1000000") $( bc <<< "scale=2; ${tbw_avg}/1024") $( bc <<< "scale=2; ${tio_avg}/1.00") ${jb_runtime} >>./results.csv
    else
       echo "Detailed metrics format is not yet available"
    fi
@@ -19,7 +19,7 @@ flush_data_and_metrics ()
 create_default_header ()
 {
    echo "Generating default header"
-   echo "Cluster Name,PVC,Storage Type,Environment,Test Name,IO Size,Jobs,Depth,Client,write MiB/s,Writes/s,Mean Write Latency (ms),95th Write Latency,read MiB/s,Reads/s,Mean Read Latency (ms),95th Read Latency,Total MiB/s,Total IOPS,Total Time (s)" >./results.csv
+   echo "Cluster Name,PVC,Storage Type,Environment,Test Name,IO Mode,IO Size,Jobs,Depth,Client,write MiB/s,Writes/s,Mean Write Latency (ms),95th Write Latency,read MiB/s,Reads/s,Mean Read Latency (ms),95th Read Latency,Total MiB/s,Total IOPS,Total Time (s)" >./results.csv
 }
 #
 # Detailed header
