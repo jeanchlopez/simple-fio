@@ -3,7 +3,12 @@
 # Detect CPU architecture
 #
 arch=$(lscpu | grep Architecture | awk '{print $2}')
-export container_image="$(grep base_container_image config.file | awk -F "=" '{print $2}')-${arch}"
+if [ "x${arch}" == "xs390x" ]
+then
+	export container_image="$(grep base_container_image config.file | awk -F "=" '{print $2}')-${arch}"
+else
+	export container_image="$(grep base_container_image config.file | awk -F "=" '{print $2}')"
+fi
 echo "Will be using container image as ${container_image}"
 #
 #==========================================================
@@ -76,21 +81,35 @@ do
 	grep "^time_based" config.file >> ${file}
 	grep "^runtime" config.file >> ${file}
 	grep "^iodepth" config.file >> ${file}
-	
-	job=$(grep "^rw" config.file | awk -F "=" '{print $2}')
+	#
+	# Changed ^rw to ^rw= to make sure we ignore rwmixread= and rwmixwrite= if specified
+	# Made same change to client.yaml
+	# Update the if to be immune to null variables
+	#
+	job=$(grep "^rw=" config.file | awk -F "=" '{print $2}')
+        echo "Set job = ${job}"
 	# Additional FIO parameters based on job/workload
 	# For write workload, the parameters have been imported from Benchmark Operator
 	# For random workloads, the parameters have been imported from ODF QE CI job file
 	#--------------------------------------------------------------------------------
-	if [ $job == "write" ];
+	if [ "x${job}" == "xwrite" ]
 	then
+                echo "Setting parameters for Sequential Write"
         	echo "fsync_on_close=1" >> ${file}
         	echo "create_on_open=1" >> ${file}
-	elif [[ $job =~ ^[rand*] ]];
+	elif [ "x${job}" == "xreadwrite" ]
 	then
+                echo "Setting parameters for Sequential Read/Write"
+        	echo "fsync_on_close=1" >> ${file}
+        	echo "create_on_open=1" >> ${file}
+        	#echo "rwmixread=70" >> ${file}
+	elif [[ $job =~ ^[rand*] ]]
+	then
+                echo "Setting parameters for Random IOs: ${job}"
         	echo "randrepeat=0" >> ${file}
         	echo "allrandrepeat=0" >> ${file}
 	fi
+        cat ${file}
 	#-------------------------------------------------------------------------------
 	grep "^log_avg_msec" config.file >> ${file}
 	echo -e "write_iops_log=iops" >> ${file}
@@ -144,7 +163,16 @@ do
 done
 
 sleep 10
-sed -e "s#image: to_be_updated_at_run_time#image: ${container_image}#g" client.yaml >client-gen.yaml
+#
+# Allow support for json output to be parsed by print_results.sh
+#
+if [ "x${1}" == "xjson2csv" ]
+then
+	echo "Will be using JSON formatted output from fio"
+	sed -e "s#image: to_be_updated_at_run_time#image: ${container_image}#g" client-json2csv.yaml >client-gen.yaml
+else
+	sed -e "s#image: to_be_updated_at_run_time#image: ${container_image}#g" client.yaml >client-gen.yaml
+fi
 #
 # Check we do not have any client pod running
 #

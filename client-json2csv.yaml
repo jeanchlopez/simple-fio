@@ -53,7 +53,7 @@ spec:
               numjobs=`grep ^numjobs= /tmp/job${bs_count}.fio | awk -F \"=\" '{print $2}'`;
               iodepth=`grep ^iodepth= /tmp/job${bs_count}.fio | awk -F \"=\" '{print $2}'`;
               echo \"$(date) Sample=${iter}; Block_Size=${bs}; job=${rw}; numjobs=${numjobs}; iodepth=${iodepth}\" ;
-              /usr/bin/fio --output=summary.log --client=/tmp/server_ip.txt /tmp/job${bs_count}.fio;
+              /usr/bin/fio --output=summary.log --output-format=json --client=/tmp/server_ip.txt /tmp/job${bs_count}.fio;
               sleep 10;
               if [[ ${server} -eq 1 ]]; then
                 grep -A6 \"^fio_test\" summary.log;

@@ -219,7 +219,7 @@ do
    # Extracting file for processing
    #
    oc cp fio-storage:/mnt/${filetr} ~/simple-fio-results/${filetr}
-   target_dir="./fio-20${year}${month}${day}-${hour}${minute}"
+   target_dir="./fio-${year}${month}${day}-${hour}${minute}"
    cd ~/simple-fio-results
    rm -Rf ./fio
    rm -Rf ${target_dir}
@@ -237,7 +237,7 @@ do
          create_detailed_header
       fi
    fi
-   cat ${target_dir}/summary.log | egrep -v -e "^<fio-server" >${target_dir}/summary.out
+   cat ${target_dir}/summary.log | egrep -v -e "^<fio-server" | egrep -v -e "^fio: " >${target_dir}/summary.out
    multi_client=$(cat ${target_dir}/summary.out | jq '.client_stats[].jobname' | wc -l)
    if [ "x${multi_client}" != "x1" ]
    then 
