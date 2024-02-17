@@ -109,7 +109,6 @@ do
         	echo "randrepeat=0" >> ${file}
         	echo "allrandrepeat=0" >> ${file}
 	fi
-        cat ${file}
 	#-------------------------------------------------------------------------------
 	grep "^log_avg_msec" config.file >> ${file}
 	echo -e "write_iops_log=iops" >> ${file}
