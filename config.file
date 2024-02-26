@@ -1,8 +1,8 @@
 #---------------
 # Tool Parameters
 #---------------
-cluster_name=IBM4Citi
-cluster_environment="Data Foundation on Z"
+cluster_name=ClusterName			# Name your cluster
+cluster_environment=ClusterEnvironmentDetails	# Provide additional infor about your cluster (e.g. OCP 4.12 on VMware)
 #---------------
 # OCS Parameters
 #---------------
@@ -12,7 +12,7 @@ storage_type=ocs-storagecluster-ceph-rbd
 #
 # FIO Execution Parameters
 #-------------------------
-server=1
+server=4
 sample=1
 # Prefill options: true|false
 prefill=true
@@ -26,8 +26,8 @@ base_container_image=quay.io/vcppds7878/simple-fio:0.2
 # directory=/mnt/pvc	# Fixed for ocs-storagecluster-cephfs
 #----------------------------------------------
 direct=1
-rw=randwrite
-#rwmixread=75
+rw=randrw
+rwmixread=75
 # multiple block sizes can be mentioned with space separated
 bs=4k
 numjobs=4
