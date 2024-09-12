@@ -1,8 +1,8 @@
-FROM fedora
+FROM ubi9:9.3
 
-MAINTAINER Abhishek Bose version: 0.1
+MAINTAINER JC Lopez and Abhishek Bose version: 0.2 for s390 support
 
-RUN dnf install -y fio
+RUN dnf install -y git make gcc unzip wget fio python3
 ENV path=$path;/usr/bin
 
 CMD /usr/bin/date;
