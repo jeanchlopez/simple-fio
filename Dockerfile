@@ -1,4 +1,4 @@
-FROM ubi9:9.3
+FROM ubi9:latest
 
 MAINTAINER JC Lopez and Abhishek Bose version: 0.2 for s390 support
 
